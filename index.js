@@ -45,43 +45,46 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 (async () => {
     try {
-        await rest.put(
-            Routes.applicationCommands(process.env.CLIENT_ID),
-            { body: commands }
-        );
-        console.log('Slash commands registered.');
-    } catch (error) {
-        console.error(error);
-    }
-})();
 
-client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return;
+    if (interaction.commandName === 'addrole') {
 
-    const hrRole = interaction.guild.roles.cache.find(r => r.name === "Department Human Resources");
-
-    if (!interaction.member.roles.cache.has(hrRole?.id)) {
-        return interaction.reply({ content: "❌ You do not have permission to use this command.", ephemeral: true });
-    }
-
-    const user = interaction.options.getUser('user');
-    const role = interaction.options.getRole('role');
-    const member = await interaction.guild.members.fetch(user.id);
-
-    try {
-        if (interaction.commandName === 'addrole') {
-            await member.roles.add(role);
-            await interaction.reply({ content: `✅ Added ${role.name} to ${user.tag}` });
+        if (member.roles.cache.has(role.id)) {
+            return interaction.reply({
+                content: `⚠️ ${user.tag} already has the ${role.name} role.`,
+                ephemeral: true
+            });
         }
 
-        if (interaction.commandName === 'removerole') {
-            await member.roles.remove(role);
-            await interaction.reply({ content: `✅ Removed ${role.name} from ${user.tag}` });
-        }
-    } catch (err) {
-        console.error(err);
-        interaction.reply({ content: "⚠️ Error modifying role.", ephemeral: true });
+        await member.roles.add(role);
+
+        return interaction.reply({
+            content: `✅ Successfully added ${role.name} to ${user.tag}.`
+        });
     }
-});
+
+    if (interaction.commandName === 'removerole') {
+
+        if (!member.roles.cache.has(role.id)) {
+            return interaction.reply({
+                content: `⚠️ ${user.tag} does not have the ${role.name} role.`,
+                ephemeral: true
+            });
+        }
+
+        await member.roles.remove(role);
+
+        return interaction.reply({
+            content: `✅ Successfully removed ${role.name} from ${user.tag}.`
+        });
+    }
+
+} catch (err) {
+    console.error(err);
+    return interaction.reply({
+        content: "⚠️ Error modifying role. Check bot permissions and role hierarchy.",
+        ephemeral: true
+    });
+}
+
 
 client.login(process.env.TOKEN);
